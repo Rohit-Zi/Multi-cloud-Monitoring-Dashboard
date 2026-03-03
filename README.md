@@ -83,7 +83,12 @@ http://localhost:5173
 ```
 
 ---
-
+OR
+run:
+```
+npm run dev
+```
+in the root folder.
 ## 🎯 Project Goal
 
 To design a scalable, multi-cloud security monitoring system that can:
