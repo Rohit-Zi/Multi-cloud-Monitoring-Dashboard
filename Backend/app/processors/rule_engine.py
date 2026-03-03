@@ -166,6 +166,28 @@ class RuleEngine:
                 "alert": True,
                 "title": "Snapshot shared with unknown account",
                 "description": "EBS snapshot shared with external AWS account"
+                        },
+                        "console_login_success": {
+                "severity": "low",
+                "alert": True,
+                "title": "User Logged Into AWS Console",
+                "description": "User successfully logged into AWS Console"
+            },
+            "ec2_instance_started": {
+                "severity": "low",
+                "alert": True,
+                "title": "EC2 Instance Started",
+                "description": "An EC2 instance was started by a user"
+            },"iam_readonly_policy_attached": {
+                "severity": "low",
+                "alert": True,
+                "title": "ReadOnly Policy Attached",
+                "description": "A ReadOnlyAccess policy was attached to an IAM user"
+            },"s3_bucket_access": {
+                "severity": "low",
+                "alert": True,
+                "title": "S3 Bucket Accessed",
+                "description": "An S3 bucket was accessed by a user"
             }
         },
         # Azure Rules

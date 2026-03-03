@@ -153,7 +153,7 @@ const filteredAlerts = cloudAlerts.filter((a) => {
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList className="bg-secondary/50 border border-border/30">
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="alerts">Alerts ({cloudAlerts.length})</TabsTrigger>
+          <TabsTrigger value="alerts">Alerts</TabsTrigger>
           <TabsTrigger value="logs">Activity Logs ({cloudLogs.length})</TabsTrigger>
           <TabsTrigger value="resources">Resources ({cloudResources.length})</TabsTrigger>
           <TabsTrigger value="compliance">Compliance</TabsTrigger>
@@ -197,7 +197,10 @@ const filteredAlerts = cloudAlerts.filter((a) => {
         </TabsContent>
 
       {/* ALERTS */}
-           <div className="glass-card p-4 flex flex-wrap gap-3 items-center">
+      
+        <TabsContent value="alerts">
+
+          <div className="glass-card p-4 flex flex-wrap gap-3 items-center mb-4">
             <div className="relative flex-1 min-w-[200px]">
           <input
             value={search}
@@ -206,7 +209,6 @@ const filteredAlerts = cloudAlerts.filter((a) => {
           className="w-full bg-secondary/50 rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none border border-border/50 focus:border-primary/50"
         />
         </div>
-
           <Select value={severityFilter} onValueChange={setSeverityFilter}>
             <SelectTrigger className="w-[130px] bg-secondary/50 border-border/50">
               <SelectValue placeholder="Severity" />
@@ -231,16 +233,15 @@ const filteredAlerts = cloudAlerts.filter((a) => {
             </SelectContent>
           </Select>
         </div>
-        <TabsContent value="alerts">
-  <div className="glass-card h-[500px] flex flex-col">
 
+  <div className="glass-card h-[500px] flex flex-col">
     {/* HEADER TABLE (STATIC) */}
     <Table className="table-fixed w-full">
       <TableHeader>
         <TableRow className="border-border/30 hover:bg-transparent">
           <TableHead className=" w-[40%] text-muted-foreground">Alert</TableHead>
-          <TableHead className=" w-[15%] text-muted-foreground">Severity</TableHead>
-          <TableHead className=" w-[15%] text-muted-foreground">Status</TableHead>
+          <TableHead className=" w-[15%] text-muted-foreground">Severity {severityFilter !== "all" && `(${filteredAlerts.length})`}</TableHead>
+          <TableHead className=" w-[15%] text-muted-foreground">Status {statusFilter !== "all" && `(${filteredAlerts.length})`}</TableHead>
           <TableHead className=" w-[15%] text-muted-foreground">Resource</TableHead>
           <TableHead className=" w-[15%] text-muted-foreground">Time</TableHead>
         </TableRow>

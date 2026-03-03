@@ -112,7 +112,6 @@ useEffect(() => {
           <SelectTrigger className="w-[120px] bg-secondary/50 border-border/50"><SelectValue placeholder="Severity" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All</SelectItem>
-            <SelectItem value="critical">Critical</SelectItem>
             <SelectItem value="high">High</SelectItem>
             <SelectItem value="medium">Medium</SelectItem>
             <SelectItem value="low">Low</SelectItem>
@@ -135,8 +134,8 @@ useEffect(() => {
           <TableHeader>
             <TableRow className="border-border/30 hover:bg-transparent">
               <TableHead className="text-muted-foreground">Alert</TableHead>
-              <TableHead className="text-muted-foreground">Severity</TableHead>
-              <TableHead className="text-muted-foreground">Status</TableHead>
+              <TableHead className="text-muted-foreground">Severity {severityFilter !== "all" && `(${filtered.length})`}</TableHead>
+              <TableHead className="text-muted-foreground">Status {statusFilter !== "all" && `(${filtered.length})`}</TableHead>
               <TableHead className="text-muted-foreground">Cloud</TableHead>
               <TableHead className="text-muted-foreground">Resource</TableHead>
               <TableHead className="text-muted-foreground">Time</TableHead>

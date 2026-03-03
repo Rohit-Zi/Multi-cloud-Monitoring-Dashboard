@@ -24,7 +24,6 @@ class CloudTrailSimulator:
     # AWS regions
     REGIONS = ["us-east-1", "us-west-2", "eu-west-1", "ap-southeast-1", "eu-central-1"]
     
-    # Realistic usernames
     USERS = {
         "admins": ["admin@company.com", "root", "sysadmin@company.com", "cloudadmin@company.com"],
         "developers": ["dev1@company.com", "developer@company.com", "john.smith@company.com"],
@@ -32,7 +31,7 @@ class CloudTrailSimulator:
         "service_accounts": ["jenkins-sa", "terraform-deploy", "ci-cd-pipeline"]
     }
     
-    # 25+ Realistic Security Event Templates
+    # 25+ Realistic Security Event
     SECURITY_EVENTS = [
         # === CRITICAL THREATS ===
         {
@@ -91,6 +90,20 @@ class CloudTrailSimulator:
                 "data_classification": "Confidential - Customer PII"
             }
         },
+        {
+    "name": "Successful Console Login",
+    "provider": "aws",
+    "event_type": "console_login_success",
+    "severity": "low",
+    "event_data": {
+        "user": lambda: random.choice(CloudTrailSimulator.USERS["developers"]),
+        "resource": "AWS Management Console",
+        "ip_address": lambda: random.choice(CloudTrailSimulator.IP_POOLS["internal"]),
+        "region": "us-east-1",
+        "mfa_used": True,
+        "login_success": True
+    }
+},
         
         # === UNAUTHORIZED ACCESS ===
         {
@@ -126,6 +139,19 @@ class CloudTrailSimulator:
                 "login_success": True
             }
         },
+        {
+    "name": "EC2 Instance Started",
+    "provider": "aws",
+    "event_type": "ec2_instance_started",
+    "severity": "low",
+    "event_data": {
+        "user": lambda: random.choice(CloudTrailSimulator.USERS["developers"]),
+        "resource": lambda: f"i-{uuid.uuid4().hex[:17]}",
+        "ip_address": lambda: random.choice(CloudTrailSimulator.IP_POOLS["internal"]),
+        "region": lambda: random.choice(CloudTrailSimulator.REGIONS),
+        "action": "StartInstances"
+    }
+},
         
         # === SECURITY GROUP VIOLATIONS ===
         {
@@ -158,6 +184,19 @@ class CloudTrailSimulator:
                 "affected_instances": lambda: random.randint(5, 50)
             }
         },
+        {
+    "name": "ReadOnly Policy Attached",
+    "provider": "aws",
+    "event_type": "iam_readonly_policy_attached",
+    "severity": "low",
+    "event_data": {
+        "user": lambda: random.choice(CloudTrailSimulator.USERS["admins"]),
+        "resource": lambda: f"arn:aws:iam::123456789012:user/{random.choice(['analyst', 'auditor'])}",
+        "ip_address": lambda: random.choice(CloudTrailSimulator.IP_POOLS["internal"]),
+        "region": "us-east-1",
+        "policy": "ReadOnlyAccess"
+    }
+},
         
         # === IAM POLICY CHANGES ===
         {
@@ -187,6 +226,19 @@ class CloudTrailSimulator:
                 "assumed_from": "Unknown External Account"
             }
         },
+        {
+    "name": "S3 Bucket Accessed",
+    "provider": "aws",
+    "event_type": "s3_bucket_access",
+    "severity": "low",
+    "event_data": {
+        "user": lambda: random.choice(CloudTrailSimulator.USERS["developers"]),
+        "resource": "s3://dev-application-logs",
+        "ip_address": lambda: random.choice(CloudTrailSimulator.IP_POOLS["internal"]),
+        "region": "us-east-1",
+        "action": "GetObject"
+    }
+},
         
         # === DATA EXFILTRATION PATTERNS ===
         {

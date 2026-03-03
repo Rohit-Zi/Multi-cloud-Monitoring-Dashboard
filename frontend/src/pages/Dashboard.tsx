@@ -55,6 +55,7 @@ const generateRandomAlert = async () => {
     });
 
     await fetchAlerts();
+    window.dispatchEvent(new Event("new-alert"));
   } catch (error) {
     console.error("Failed to generate alert", error);
   }
@@ -110,7 +111,7 @@ useEffect(() => {
         {cloudKeys.map((cloud) => {
           const stats = {
           totalAlerts: alerts.filter(a => a.cloud.toLowerCase() === cloud).length,
-          criticalAlerts: alerts.filter(a => a.cloud.toLowerCase() === cloud && a.severity === "critical").length,
+          criticalAlerts: alerts.filter(a => a.cloud.toLowerCase() === cloud && a.severity === "high").length,
           activeResources: 0
         };
           const info = cloudProviderInfo[cloud];
