@@ -91,10 +91,25 @@ cloudAlerts.forEach((alert) => {
 const trendData = Object.entries(trendMap)
   .map(([date, count]) => ({ date, alerts: count }))
   .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
 const [severityFilter, setSeverityFilter] = useState<string>("all");
 const [statusFilter, setStatusFilter] = useState<string>("all");
 const [search, setSearch] = useState("");
-const sanitizeSearch = (value: string) => {
+const filteredAlerts = cloudAlerts.filter((a) => {
+  const searchLower = search.toLowerCase();
+
+  const matchesSearch =
+    a.title?.toLowerCase().includes(searchLower) ||
+    a.resource?.toLowerCase().includes(searchLower);
+
+  const matchesSeverity =
+    severityFilter === "all" || a.severity === severityFilter;
+
+  const matchesStatus =
+    statusFilter === "all" || a.status === statusFilter;
+
+  return matchesSearch && matchesSeverity && matchesStatus;
+});const sanitizeSearch = (value: string) => {
     return value.replace(/[<>"'&]/g, "").slice(0, 100);
   };
 
@@ -198,7 +213,6 @@ const sanitizeSearch = (value: string) => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All</SelectItem>
-              <SelectItem value="critical">Critical</SelectItem>
               <SelectItem value="high">High</SelectItem>
               <SelectItem value="medium">Medium</SelectItem>
               <SelectItem value="low">Low</SelectItem>
@@ -218,36 +232,56 @@ const sanitizeSearch = (value: string) => {
           </Select>
         </div>
         <TabsContent value="alerts">
-          <div className="glass-card overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-border/30 hover:bg-transparent">
-                  <TableHead className="text-muted-foreground">Alert</TableHead>
-                  <TableHead className="text-muted-foreground">Severity</TableHead>
-                  <TableHead className="text-muted-foreground">Status</TableHead>
-                  <TableHead className="text-muted-foreground">Resource</TableHead>
-                  <TableHead className="text-muted-foreground">Time</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {cloudAlerts.map((a) => (
-                  <TableRow key={a.id} className="border-border/20 hover:bg-secondary/30 cursor-pointer" onClick={() => setSelectedAlert(a)}>
-                    <TableCell>
-                       <p className="font-medium text-sm">{a.title}</p>
-                        <p className="text-[10px] text-muted-foreground">
-                          ALT-{a.id.slice(0, 6).toUpperCase()}
-                          </p>
-                    </TableCell>
-                    <TableCell><SeverityBadge severity={a.severity} /></TableCell>
-                    <TableCell><StatusBadge status={a.status} /></TableCell>
-                    <TableCell className="text-xs text-muted-foreground font-mono">{a.resource}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{new Date(a.created_at).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </TabsContent>
+  <div className="glass-card h-[500px] flex flex-col">
+
+    {/* HEADER TABLE (STATIC) */}
+    <Table className="table-fixed w-full">
+      <TableHeader>
+        <TableRow className="border-border/30 hover:bg-transparent">
+          <TableHead className=" w-[40%] text-muted-foreground">Alert</TableHead>
+          <TableHead className=" w-[15%] text-muted-foreground">Severity</TableHead>
+          <TableHead className=" w-[15%] text-muted-foreground">Status</TableHead>
+          <TableHead className=" w-[15%] text-muted-foreground">Resource</TableHead>
+          <TableHead className=" w-[15%] text-muted-foreground">Time</TableHead>
+        </TableRow>
+      </TableHeader>
+    </Table>
+    <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
+      <Table className="table-fixed w-full">
+        <TableBody>
+          {filteredAlerts.map((a) => (
+            <TableRow
+              key={a.id}
+              className="border-border/20 hover:bg-secondary/30 cursor-pointer"
+              onClick={() => setSelectedAlert(a)}
+            >
+              <TableCell className="w-[40%]">
+                <p className="font-medium text-sm">{a.title}</p>
+                <p className="text-[10px] text-muted-foreground">
+                  ALT-{a.id.slice(0, 6).toUpperCase()}
+                </p>
+              </TableCell>
+              <TableCell className="w-[15%]"><SeverityBadge severity={a.severity} /></TableCell>
+              <TableCell className="w-[15%]"><StatusBadge status={a.status} /></TableCell>
+              <TableCell className="w-[15%] text-xs text-muted-foreground font-mono">
+                {a.resource}
+              </TableCell>
+              <TableCell className="w-[15%] text-xs text-muted-foreground whitespace-nowrap">
+                {new Date(a.created_at).toLocaleString([], {
+                  month: "short",
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+
+  </div>
+</TabsContent>
 
         {/* ACTIVITY LOGS */}
         <TabsContent value="logs">
