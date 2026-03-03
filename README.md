@@ -97,4 +97,3 @@ To design a scalable, multi-cloud security monitoring system that can:
 
 ## 👨‍💻 Author
 Rohit Zi
-Cybersecurity Focus
