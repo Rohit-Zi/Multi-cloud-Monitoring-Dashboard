@@ -38,9 +38,27 @@ import { useEffect, useState } from "react";
 import { getAlerts } from "@/lib/api";
 
 const cloudKeys: CloudProvider[] = ["aws", "azure", "gcp"];
-
 export default function Dashboard() {
   const [alerts, setAlerts] = useState<any[]>([]);
+  const fetchAlerts = async () => {
+  try {
+    const data = await getAlerts();
+    setAlerts(data);
+  } catch (error) {
+    console.error("Failed to fetch alerts", error);
+  }
+};
+const generateRandomAlert = async () => {
+  try {
+    await fetch("http://localhost:8000/simulator/trigger/random", {
+      method: "POST",
+    });
+
+    await fetchAlerts();
+  } catch (error) {
+    console.error("Failed to generate alert", error);
+  }
+};
   const totalAlerts = alerts.length;
   const criticalAlerts = alerts.filter(a => a.severity === "critical").length;
   const totalResources = cloudStats.reduce((s, c) => s + c.activeResources, 0);
@@ -55,6 +73,7 @@ useEffect(() => {
       console.error("Failed to load alerts", error);
     }
   };
+
 
   loadAlerts();
 }, []);
@@ -79,6 +98,12 @@ useEffect(() => {
   className="px-4 py-2 bg-black text-white rounded"
 >
   Test Backend
+</button>
+<button
+  onClick={generateRandomAlert}
+  className="px-4 py-2 bg-black text-white rounded-md hover:bg-red-700"
+>
+  Generate Random Alert
 </button>
       {/* Cloud Provider Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

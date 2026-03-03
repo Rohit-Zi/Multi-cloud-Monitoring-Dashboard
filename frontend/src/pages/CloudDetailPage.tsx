@@ -181,7 +181,42 @@ const sanitizeSearch = (value: string) => {
           </div>
         </TabsContent>
 
-        {/* ALERTS */}
+      {/* ALERTS */}
+           <div className="glass-card p-4 flex flex-wrap gap-3 items-center">
+            <div className="relative flex-1 min-w-[200px]">
+          <input
+            value={search}
+          onChange={(e) => setSearch(sanitizeSearch(e.target.value))}
+          placeholder="Search alerts..."
+          className="w-full bg-secondary/50 rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none border border-border/50 focus:border-primary/50"
+        />
+        </div>
+
+          <Select value={severityFilter} onValueChange={setSeverityFilter}>
+            <SelectTrigger className="w-[130px] bg-secondary/50 border-border/50">
+              <SelectValue placeholder="Severity" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="critical">Critical</SelectItem>
+              <SelectItem value="high">High</SelectItem>
+              <SelectItem value="medium">Medium</SelectItem>
+              <SelectItem value="low">Low</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[130px] bg-secondary/50 border-border/50">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="detected">Detected</SelectItem>
+              <SelectItem value="investigating">Investigating</SelectItem>
+              <SelectItem value="resolved">Resolved</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         <TabsContent value="alerts">
           <div className="glass-card overflow-hidden">
             <Table>
@@ -215,34 +250,6 @@ const sanitizeSearch = (value: string) => {
         </TabsContent>
 
         {/* ACTIVITY LOGS */}
-        <div className="relative flex-1 min-w-[200px]">
-          <search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(sanitizeSearch(e.target.value))}
-            placeholder="Search alerts..."
-            className="w-full bg-secondary/50 rounded-lg pl-9 pr-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none border border-border/50 focus:border-primary/50"
-          />
-        </div>
-        <Select value={severityFilter} onValueChange={setSeverityFilter}>
-          <SelectTrigger className="w-[120px] bg-secondary/50 border-border/50"><SelectValue placeholder="Severity" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All</SelectItem>
-            <SelectItem value="critical">Critical</SelectItem>
-            <SelectItem value="high">High</SelectItem>
-            <SelectItem value="medium">Medium</SelectItem>
-            <SelectItem value="low">Low</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[120px] bg-secondary/50 border-border/50"><SelectValue placeholder="Status" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All</SelectItem>
-            <SelectItem value="detected">Detected</SelectItem>
-            <SelectItem value="investigating">Investigating</SelectItem>
-            <SelectItem value="resolved">Resolved</SelectItem>
-          </SelectContent>
-        </Select>
         <TabsContent value="logs">
           <div className="glass-card overflow-hidden">
             <Table>
@@ -256,9 +263,7 @@ const sanitizeSearch = (value: string) => {
                 </TableRow>
               </TableHeader>
               <div className="glass-card p-4 flex flex-wrap gap-3 items-center">
-        
-        
-      </div>
+              </div>          
               <TableBody>
                 {cloudLogs.map((l) => (
                   <TableRow key={l.id} className="border-border/20 hover:bg-secondary/30">
