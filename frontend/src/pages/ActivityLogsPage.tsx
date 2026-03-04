@@ -107,6 +107,7 @@ export default function ActivityLogsPage() {
               <TableHead className="text-muted-foreground">Action</TableHead>
               <TableHead className="text-muted-foreground">User</TableHead>
               <TableHead className="text-muted-foreground">Cloud</TableHead>
+              <TableHead className="text-muted-foreground">Category</TableHead>
               <TableHead className="text-muted-foreground">Resource</TableHead>
               <TableHead className="text-muted-foreground">IP</TableHead>
               <TableHead className="text-muted-foreground">Time</TableHead>
@@ -129,6 +130,11 @@ export default function ActivityLogsPage() {
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">{log.user}</TableCell>
                   <TableCell><CloudBadge cloud={log.cloud?.toLowerCase()} /></TableCell>
+                  <TableCell>
+                  <span className="px-2 py-1 text-[10px] rounded bg-secondary text-muted-foreground">
+                    {log.event_category}
+                  </span>
+                </TableCell>
                   <TableCell className="text-xs text-muted-foreground font-mono">{log.resource}</TableCell>
                   <TableCell className="text-xs text-muted-foreground font-mono">{log.source_ip}</TableCell>
                   <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
