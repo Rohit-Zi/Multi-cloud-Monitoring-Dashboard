@@ -9,3 +9,13 @@ export const testBackend = async () => {
   const data = await response.json();
   return data;
 };
+export const getLogs = async () => {
+  const res = await fetch("http://127.0.0.1:8000/logs");
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch logs");
+  }
+
+  const data = await res.json();
+  return data.logs;
+};

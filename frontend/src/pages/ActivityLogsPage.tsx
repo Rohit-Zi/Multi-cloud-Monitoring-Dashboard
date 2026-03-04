@@ -1,5 +1,4 @@
-import { useState, useMemo } from "react";
-import { activityLogs, type CloudProvider } from "@/data/mockData";
+import { useState, useMemo, useEffect } from "react";
 import { CloudBadge } from "@/components/dashboard/Badges";
 import {
   Table,
@@ -17,11 +16,25 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Search, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
+import { getLogs } from "@/lib/api";
 
 export default function ActivityLogsPage() {
   const [cloudFilter, setCloudFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
+  const [logs, setLogs] = useState<any[]>([]);
+  useEffect(() => {
+  const loadLogs = async () => {
+    try {
+      const data = await getLogs();
+      setLogs(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  loadLogs();
+}, []);
 
   const sanitizeSearch = (value: string) => {
     return value.replace(/[<>"'&]/g, "").slice(0, 100);
@@ -29,13 +42,17 @@ export default function ActivityLogsPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
-    return activityLogs.filter((l) => {
+    return logs.filter((l) => {
       if (cloudFilter !== "all" && l.cloud !== cloudFilter) return false;
-      if (statusFilter !== "all" && l.status !== statusFilter) return false;
-      if (search && !l.action.toLowerCase().includes(search.toLowerCase()) && !l.user.toLowerCase().includes(search.toLowerCase())) return false;
+      if (statusFilter !== "all" && l.outcome?.toLowerCase() !== statusFilter) return false;
+      if (
+        search &&
+        !l.event_name?.toLowerCase().includes(search.toLowerCase()) &&
+        !l.user?.toLowerCase().includes(search.toLowerCase())) 
+        return false;
       return true;
     });
-  }, [cloudFilter, statusFilter, search]);
+  }, [logs, cloudFilter, statusFilter, search]);
 
   const StatusIcon = ({ status }: { status: string }) => {
     if (status === "success") return <CheckCircle className="h-4 w-4 text-primary" />;
@@ -99,27 +116,29 @@ export default function ActivityLogsPage() {
             {filtered.map((log) => (
               <>
                 <TableRow
-                  key={log.id}
+                  key={log.log_id}
                   className="border-border/20 cursor-pointer hover:bg-secondary/30"
-                  onClick={() => setExpandedId(expandedId === log.id ? null : log.id)}
+                  onClick={() => setExpandedId(expandedId === log.log_id ? null : log.log_id)}
                 >
-                  <TableCell><StatusIcon status={log.status} /></TableCell>
                   <TableCell>
-                    <p className="font-mono text-sm font-medium">{log.action}</p>
-                    <p className="text-[10px] text-muted-foreground">{log.id}</p>
+                    <StatusIcon status={log.outcome?.toLowerCase()} />
+                  </TableCell>
+                  <TableCell>
+                    <p className="font-mono text-sm font-medium">{log.event_name}</p>
+                    <p className="text-[10px] text-muted-foreground">{log.log_id}</p>
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">{log.user}</TableCell>
-                  <TableCell><CloudBadge cloud={log.cloud} /></TableCell>
+                  <TableCell><CloudBadge cloud={log.cloud?.toLowerCase()} /></TableCell>
                   <TableCell className="text-xs text-muted-foreground font-mono">{log.resource}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground font-mono">{log.ip}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground font-mono">{log.source_ip}</TableCell>
                   <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                     {new Date(log.timestamp).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                   </TableCell>
                 </TableRow>
-                {expandedId === log.id && (
-                  <TableRow key={`${log.id}-detail`} className="border-border/20 bg-secondary/20">
+                {expandedId === log.log_id && (
+                  <TableRow key={`${log.log_id}-detail`} className="border-border/20 bg-secondary/20">
                     <TableCell colSpan={7} className="text-sm">
-                      <p className="text-muted-foreground text-xs mb-1">Details</p>
+                      <pre className="text-xs whitespace-pre-wrap">{log.raw_log}</pre>
                       <p>{log.details}</p>
                     </TableCell>
                   </TableRow>

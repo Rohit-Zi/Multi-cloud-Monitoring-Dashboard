@@ -6,12 +6,18 @@ from app.models import alert
 from app.api import alerts
 from app.models import alert, user, logs, insight
 from app.api import alerts, simulator
-
+from app.api.log_router import router as log_router
 app = FastAPI(
     title=settings.PROJECT_NAME,
-    version=settings.VERSION
+    version=settings.VERSION,
+    swagger_ui_parameters={
+        "docExpansion": "none",   # collapse endpoints
+        "defaultModelsExpandDepth": -1  # hide schema models
+    }
    
 )
+app.include_router(log_router)
+
 alert.Base.metadata.create_all(bind=engine)
 
 app.add_middleware(
