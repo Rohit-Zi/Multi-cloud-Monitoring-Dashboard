@@ -7,7 +7,7 @@ import {
 } from "@/data/mockData";
 import { SeverityBadge, StatusBadge, CloudBadge, ResourceStatusDot } from "@/components/dashboard/Badges";
 import { Progress } from "@/components/ui/progress";
-
+import { getLogs } from "@/lib/api";
 import {
   Table,
   TableHeader,
@@ -75,7 +75,37 @@ useEffect(() => {
   threatScore: Math.min(100, cloudAlerts.length * 3)
 };
  
-  const cloudLogs: any[] = [];
+  const [logs, setLogs] = useState<any[]>([]);
+  const[logOutcome, setLogOutcome] = useState<string>("all");
+  const [logSearch, setLogSearch] = useState("");
+  useEffect(() => {
+  const loadLogs = async () => {
+    try {
+        const data = await getLogs();
+        setLogs(data.logs || data);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    loadLogs();
+  }, []);
+  const cloudLogs = logs
+  .filter((log) => log.cloud?.toLowerCase() === provider?.toLowerCase())
+  .filter((log) => {
+    const search = logSearch.toLowerCase();
+
+    const matchesSearch =
+      log.event_name?.toLowerCase().includes(search) ||
+      log.user?.toLowerCase().includes(search) ||
+      log.resource?.toLowerCase().includes(search);
+
+    const matchesOutcome =
+      logOutcome === "all" ||
+      log.outcome?.toLowerCase() === logOutcome;
+
+    return matchesSearch && matchesOutcome;
+  });
   const cloudResources: any[] = [];
   const cloudCompliance: any[] = [];
 
@@ -285,29 +315,59 @@ const filteredAlerts = cloudAlerts.filter((a) => {
 </TabsContent>
 
         {/* ACTIVITY LOGS */}
-        <TabsContent value="logs">
+        <TabsContent value="logs" className="mt-0 pt-0">
+          <div className="glass-card p-4 flex flex-wrap gap-3 items-center mb-4">
+            <div className="relative flex-1 min-w-[200px]">
+          <input
+            value={logSearch}
+          onChange={(e) => setLogSearch(sanitizeSearch(e.target.value))}
+          placeholder="Search logs..."
+          className="w-full bg-secondary/50 rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none border border-border/50 focus:border-primary/50"
+        />
+        </div>
+          <Select value={logOutcome} onValueChange={setLogOutcome}>
+            <SelectTrigger className="w-[130px] bg-secondary/50 border-border/50">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="success">Success</SelectItem>
+              <SelectItem value="failure">Failure</SelectItem>
+              <SelectItem value="warning">Warning</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
           <div className="glass-card overflow-hidden">
             <Table>
               <TableHeader>
                 <TableRow className="border-border/30 hover:bg-transparent">
-                  <TableHead className="text-muted-foreground w-8"></TableHead>
-                  <TableHead className="text-muted-foreground">Action</TableHead>
+                  <TableHead className=" w-6"></TableHead>
+                  <TableHead className="text-muted-foreground">Event</TableHead>
+                  <TableHead className="text-muted-foreground">Category</TableHead>
                   <TableHead className="text-muted-foreground">User</TableHead>
                   <TableHead className="text-muted-foreground">Resource</TableHead>
+                  <TableHead className="text-muted-foreground">IP</TableHead>
                   <TableHead className="text-muted-foreground">Time</TableHead>
                 </TableRow>
               </TableHeader>
-              <div className="glass-card p-4 flex flex-wrap gap-3 items-center">
-              </div>          
               <TableBody>
                 {cloudLogs.map((l) => (
                   <TableRow key={l.id} className="border-border/20 hover:bg-secondary/30">
-                    <TableCell>
-                      {l.status === "success" ? <CheckCircle className="h-4 w-4 text-primary" /> : l.status === "failure" ? <XCircle className="h-4 w-4 text-severity-critical" /> : <AlertTriangle className="h-4 w-4 text-severity-medium" />}
+                    <TableCell className="w-6 text-center">
+                      {l.outcome?.toLowerCase() === "success" ? 
+                      <CheckCircle className="h-4 w-4 text-primary" /> : l.outcome?.toLowerCase() === "failure" ?
+                      <XCircle className="h-4 w-4 text-severity-critical" /> :
+                      <AlertTriangle className="h-4 w-4 text-severity-medium" />}
                     </TableCell>
-                    <TableCell className="font-mono text-sm">{l.action}</TableCell>
+                    <TableCell className="font-mono text-sm">{l.event_name}</TableCell>
+                    <TableCell>
+                            <span className="px-2 py-1 text-[10px] rounded bg-secondary text-muted-foreground">
+                              {l.event_category}
+                            </span>
+                    </TableCell>  
                     <TableCell className="text-xs text-muted-foreground">{l.user}</TableCell>
                     <TableCell className="text-xs text-muted-foreground font-mono">{l.resource}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground font-mono">{l.source_ip}</TableCell>
                     <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{new Date(l.timestamp).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</TableCell>
                   </TableRow>
                 ))}
