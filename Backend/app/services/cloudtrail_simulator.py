@@ -497,7 +497,6 @@ class CloudTrailSimulator:
     # Replace resource with one from resource generator
         resource = get_random_resource()
         resolved["resource"] = resource["name"]
-
         resolved["event_time"] = datetime.utcnow().isoformat()
         resolved["event_id"] = str(uuid.uuid4())
 

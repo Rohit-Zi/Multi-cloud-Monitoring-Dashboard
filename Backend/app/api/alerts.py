@@ -18,7 +18,8 @@ def create_alert(cloud: str, provider: str, severity: str, title: str, descripti
         provider=provider,
         severity=normalized_severity,
         title=title,
-        description=description
+        description=description,
+        resource=None
     )
 
     db.add(new_alert)
@@ -60,6 +61,7 @@ def evaluate_and_create_alert(
         provider=provider.lower(),
         severity=normalized_severity,
         title=alert_data["title"],
+        resource=alert_data["resource"],
         description=f"{alert_data['description']} | User: {alert_data['user']} | Resource: {alert_data['resource']}"
     )
     
@@ -102,5 +104,35 @@ def get_alert_statistics(db: Session = Depends(get_db)):
             "gcp": len([a for a in all_alerts if a.provider == "gcp"])
         }
     }
+@router.get("/resources/count")
+def get_resource_count(db: Session = Depends(get_db)):
+    resources = db.query(Alert.resource).distinct().all()
+    return {"resource_count": len(resources)}
 
+@router.get("/resources/count/{provider}")
+def get_resource_count(provider: str, db: Session = Depends(get_db)):
+    resources = (
+        db.query(Alert.resource)
+        .filter(Alert.provider == provider)
+        .distinct()
+        .all()
+    )
 
+    return {"resource_count": len(resources)}
+@router.get("/resources/{provider}")
+def get_resources(provider: str, db: Session = Depends(get_db)):
+    alerts = db.query(Alert).filter(Alert.provider == provider).all()
+
+    resource_map = {}
+
+    for alert in alerts:
+        if alert.resource:
+            resource_map[alert.resource] = {
+                "id": alert.resource,
+                "name": alert.resource,
+                "type": "compute",
+                "region": "us-east-1",
+                "status": "active"
+            }
+
+    return list(resource_map.values())    

@@ -48,12 +48,28 @@ export default function Dashboard() {
     console.error("Failed to fetch alerts", error);
   }
 };
-const generateRandomAlert = async () => {
+const [AwsRsources, setAwsResourceCount] = useState(0);
+const [azureRsources, setAzureResourceCount] = useState(0);
+const [gcpRsources, setGcpResourceCount] = useState(0);
+const fetchAwsResourceCount = async () => {
+  try {
+    const res = await fetch("http://127.0.0.1:8000/resources/count/aws");
+    const data = await res.json();
+    setAwsResourceCount(data.resource_count);
+  } catch (err) {
+    console.error("Failed to load resource count", err);
+  }
+};
+
+useEffect(() => {
+  fetchAwsResourceCount();
+}, []);const generateRandomAlert = async () => {
   try {
     await fetch("http://localhost:8000/simulator/trigger/random", {
       method: "POST",
     });
-
+    fetchAwsResourceCount(); // Refresh resource count after generating alert
+    fetchAlerts(); // Refresh alerts list
     await fetchAlerts();
     window.dispatchEvent(new Event("new-alert"));
   } catch (error) {
@@ -74,10 +90,10 @@ useEffect(() => {
       console.error("Failed to load alerts", error);
     }
   };
-
-
   loadAlerts();
 }, []);
+
+
   return (
       <div className="space-y-6">
       {/* Page title */}
@@ -112,7 +128,12 @@ useEffect(() => {
           const stats = {
           totalAlerts: alerts.filter(a => a.cloud.toLowerCase() === cloud).length,
           criticalAlerts: alerts.filter(a => a.cloud.toLowerCase() === cloud && a.severity === "high").length,
-          activeResources: 0
+          activeResources: 
+            cloud === "aws"
+            ? AwsRsources
+            : cloud === "azure"
+            ? azureRsources
+            : gcpRsources, //temp value here, should come from API
         };
           const info = cloudProviderInfo[cloud];
           return (

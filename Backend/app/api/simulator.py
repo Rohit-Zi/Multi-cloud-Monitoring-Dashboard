@@ -432,6 +432,7 @@ def process_event(event: dict, db: Session):
         provider=event["provider"],
         severity=normalized_severity,
         title=alert_data["title"],
+        resource=alert_data.get("resource"),
         description=f"{alert_data['description']} | User: {alert_data.get('user', 'Unknown')} | Resource: {alert_data.get('resource', 'Unknown')}",
         log_id=new_log.log_id        # ← link alert to log
     )
@@ -486,6 +487,7 @@ def trigger_random_event(db: Session = Depends(get_db)):
             "title": new_alert.title,
             "severity": new_alert.severity,
             "provider": new_alert.provider,
+            "resource": new_alert.resource,
             "status": new_alert.status,
             "log_id": new_alert.log_id,
             "created_at": new_alert.created_at.isoformat()

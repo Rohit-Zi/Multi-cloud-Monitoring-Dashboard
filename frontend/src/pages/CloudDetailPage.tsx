@@ -39,6 +39,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { ShieldAlert, Server, Shield, AlertTriangle, Activity, CheckCircle, XCircle } from "lucide-react";
+import { count } from "console";
 
 
 const validClouds = ["aws", "azure", "gcp"];
@@ -67,10 +68,25 @@ useEffect(() => {
    const cloudAlerts = alerts.filter(
   (a) => a.cloud.toLowerCase() === provider?.toLowerCase()
 );
+  const [resourceCount, setResourceCount] = useState(0);
+
+  useEffect(() => {
+    const fetchResourceCount = async () => {
+      try {
+        const res = await fetch(`http://127.0.0.1:8000/resources/count/${cloud}`);
+        const data = await res.json();
+        setResourceCount(data.resource_count);
+      } catch (err) {
+        console.error("Failed to load resource count",err);
+      }
+    };
+
+    fetchResourceCount();
+   }, []);
   const stats = {
   totalAlerts: cloudAlerts.length,
   criticalAlerts: cloudAlerts.filter(a => a.severity === "high").length,
-  activeResources: 7, //temp value here, should come from API
+  activeResources: resourceCount, //temp value here, should come from API
   complianceScore: 79, //temp value here, should come from API
   threatScore: Math.min(100, cloudAlerts.length * 3)
 };
@@ -107,16 +123,14 @@ useEffect(() => {
     return matchesSearch && matchesOutcome;
   });
 const [resources, setResources] = useState<any[]>([])
-
 useEffect(() => {
   const loadResources = async () => {
-    const res = await fetch("http://127.0.0.1:8000/resources")
+    const res = await fetch(`http://127.0.0.1:8000/resources/${provider}`);
     const data = await res.json()
-    setResources(data)
-  }
-
+    console.log("Loaded resources:", data);
+setResources(Array.isArray(data) ? data : data.resources || [])  }
   loadResources()
-}, [])  
+}, [provider])  
 const cloudCompliance: any[] = [];
 
   const trendMap: Record<string, number> = {};
