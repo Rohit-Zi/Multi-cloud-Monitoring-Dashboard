@@ -7,6 +7,10 @@ from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.models.logs import Log
 from app.models.alert import Alert
+from fastapi import APIRouter
+from sqlalchemy.orm import Session
+from app.models.logs import Log
+from fastapi import Depends
 
 router = APIRouter()
 
@@ -125,3 +129,21 @@ def delete_log(log_id: str, db: Session = Depends(get_db)):
         "success": True,
         "message": f"Log '{log_id}' deleted successfully"
     }
+
+@router.get("/resources")
+def get_resources(db: Session = Depends(get_db)):
+
+    logs = db.query(Log.resource, Log.event_category, Log.region).all()
+
+    resources = {}
+
+    for r, category, region in logs:
+        if r not in resources:
+            resources[r] = {
+                "id": r,
+                "name": r,
+                "type": category,
+                "region": region
+            }
+
+    return list(resources.values())

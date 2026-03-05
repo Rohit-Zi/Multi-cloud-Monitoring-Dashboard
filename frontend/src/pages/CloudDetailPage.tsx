@@ -106,8 +106,18 @@ useEffect(() => {
 
     return matchesSearch && matchesOutcome;
   });
-  const cloudResources: any[] = [];
-  const cloudCompliance: any[] = [];
+const [resources, setResources] = useState<any[]>([])
+
+useEffect(() => {
+  const loadResources = async () => {
+    const res = await fetch("http://127.0.0.1:8000/resources")
+    const data = await res.json()
+    setResources(data)
+  }
+
+  loadResources()
+}, [])  
+const cloudCompliance: any[] = [];
 
   const trendMap: Record<string, number> = {};
 
@@ -139,7 +149,8 @@ const filteredAlerts = cloudAlerts.filter((a) => {
     statusFilter === "all" || a.status === statusFilter;
 
   return matchesSearch && matchesSeverity && matchesStatus;
-});const sanitizeSearch = (value: string) => {
+  });
+const sanitizeSearch = (value: string) => {
     return value.replace(/[<>"'&]/g, "").slice(0, 100);
   };
 
@@ -185,7 +196,7 @@ const filteredAlerts = cloudAlerts.filter((a) => {
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="alerts">Alerts</TabsTrigger>
           <TabsTrigger value="logs">Activity Logs ({cloudLogs.length})</TabsTrigger>
-          <TabsTrigger value="resources">Resources ({cloudResources.length})</TabsTrigger>
+          <TabsTrigger value="resources">Resources ({resources.length})</TabsTrigger>
           <TabsTrigger value="compliance">Compliance</TabsTrigger>
         </TabsList>
 
@@ -379,7 +390,7 @@ const filteredAlerts = cloudAlerts.filter((a) => {
         {/* RESOURCES */}
         <TabsContent value="resources">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {cloudResources.map((r) => (
+            {resources.map((r) => (
               <div key={r.id} className="glass-card p-4 space-y-2">
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-semibold">{r.name}</p>

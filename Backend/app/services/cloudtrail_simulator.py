@@ -7,6 +7,7 @@ import random
 import uuid
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
+from app.services.resource_generator import get_random_resource
 
 class CloudTrailSimulator:
     """
@@ -485,15 +486,21 @@ class CloudTrailSimulator:
         self.event_history = []
     
     def _resolve_dynamic_values(self, event_data: Dict) -> Dict:
-        """Resolve lambda functions in event data to actual values"""
         resolved = {}
+
         for key, value in event_data.items():
             if callable(value):
                 resolved[key] = value()
             else:
                 resolved[key] = value
+
+    # Replace resource with one from resource generator
+        resource = get_random_resource()
+        resolved["resource"] = resource["name"]
+
         resolved["event_time"] = datetime.utcnow().isoformat()
         resolved["event_id"] = str(uuid.uuid4())
+
         return resolved
     
     def generate_random_event(self) -> Dict:
