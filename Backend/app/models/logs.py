@@ -3,7 +3,6 @@ Log Model - Stores generated logs linked to alerts
 Each alert has one or more logs associated with it
 """
 from sqlalchemy import Column, String, DateTime, Text
-from sqlalchemy.orm import relationship
 from app.db.database import Base
 from datetime import datetime
 import uuid
@@ -14,27 +13,33 @@ class Log(Base):
 
     log_id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
 
-    alert_id = Column(String, nullable=False)  # FK to alerts.id
+    alert_id = Column(String, nullable=True)  
 
-    cloud = Column(String, nullable=False)          # AWS / Azure / GCP / OCI / Cloudflare
-    provider = Column(String, nullable=False)        # aws / azure / gcp / oci / cloudflare
+    cloud = Column(String, nullable=False)
+    provider = Column(String, nullable=False)
 
-    event_source = Column(String, nullable=True)     # iam.amazonaws.com / Microsoft.Authorization
-    event_name = Column(String, nullable=True)       # root_account_login / DeleteDetector
-    event_category = Column(String, nullable=True)   # Authentication / Configuration / DataAccess
+    event_source = Column(String, nullable=True)
+    event_name = Column(String, nullable=True)
+    event_category = Column(String, nullable=True)
 
-    user = Column(String, nullable=True)             # who triggered the event
-    source_ip = Column(String, nullable=True)        # IP address of the caller
-    region = Column(String, nullable=True)           # cloud region
-    resource = Column(String, nullable=True)         # affected resource ARN/ID
+    user = Column(String, nullable=True)
+    source_ip = Column(String, nullable=True)
+    region = Column(String, nullable=True)
+    resource = Column(String, nullable=True)
 
-    outcome = Column(String, nullable=True)          # Success / Failed / Unknown
-    error_code = Column(String, nullable=True)       # AccessDenied / NoSuchBucket etc
+    outcome = Column(String, nullable=True)
+    error_code = Column(String, nullable=True)
 
-    timestamp = Column(String, nullable=True)        # when event occurred
+    timestamp = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    raw_log = Column(Text, nullable=True)            # complete fake cloud log as JSON string
+    raw_log = Column(Text, nullable=True)
+
+    # NEW: the source system's own unique event ID (e.g. CloudTrail's EventId).
+    # Nullable because simulator-generated logs have no real source event.
+    # Unique so the database itself refuses a duplicate insert, even if our
+    # own dedup check somehow gets bypassed -- belt and suspenders.
+    source_event_id = Column(String, nullable=True, unique=True)
 
     def to_dict(self):
         return {
@@ -53,5 +58,6 @@ class Log(Base):
             "error_code": self.error_code,
             "timestamp": self.timestamp,
             "created_at": self.created_at.isoformat() if self.created_at else None,
-            "raw_log": self.raw_log
+            "raw_log": self.raw_log,
+            "source_event_id": self.source_event_id,
         }

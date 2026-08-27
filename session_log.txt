@@ -1,0 +1,123 @@
+# Project-Minor — Session Log
+**Date:** August 27–28, 2026
+**Focus:** Real AWS CloudTrail integration (connector → rule engine → database → API → polling), IAM security hardening, git hygiene
+
+---
+
+## Where the project stood before today
+- Backend (FastAPI) + frontend (React) architecture already working
+- Simulator (`CloudTrail Simulator`) generating fake events end-to-end into `Log`/`Alert` tables
+- AWS CLI + boto3 authenticated as `CloudGoat-Admin` (admin-level IAM user)
+- CloudTrail Event History confirmed available (no Trail needed — free, 90-day lookback)
+- Goal for the session: replace/augment the simulator with a real AWS data path
+
+---
+
+## What got built today
+
+### 1. `aws_connector.py` — the full real-data pipeline
+Located at `Backend/app/connectors/aws_connector.py`. Built incrementally:
+
+| Function | Purpose |
+|---|---|
+| `get_cloudtrail_client()` | boto3 CloudTrail client, uses whatever credentials are active |
+| `get_one_cloudtrail_event()` | Early proof-of-life test — pulls 1 event |
+| `get_recent_cloudtrail_events(lookback_minutes, max_results)` | Real batch pull over a time window |
+| `normalize_event(raw_event)` | Converts raw AWS JSON → the shape `Log` model expects (parses `CloudTrailEvent` JSON string for region/IP/error code) |
+| `AWS_EVENT_NAME_TO_RULE_TYPE` (dict) | Maps real CloudTrail event names (e.g. `AuthorizeSecurityGroupIngress`) → semantic keys the existing `RuleEngine` understands (e.g. `security_group_change`) |
+| `get_rule_event_type(raw_event)` | Looks up the mapping above; special-cases `ConsoleLogin` to distinguish root vs. IAM user login |
+| `process_aws_event(raw_event, db)` | **Core pipeline function.** Dedup check → normalize → rule mapping → evaluate → save Log (+ Alert if flagged). Shared by the script, the API endpoint, and the poller — one source of truth |
+
+**Known gap (documented, not fixed):** GuardDuty-only events (`port_scan_detected`, `brute_force_attack`, `crypto_mining`, `login_from_tor`, `data_exfiltration`) exist in the rulebook but are **not reachable from CloudTrail** — they require a separate GuardDuty connector. Not attempted this session.
+
+### 2. Database changes (2 migrations)
+- **`alert_id` on `Log` made nullable.** Previously every log required an alert (schema forced it). Now: every AWS event becomes a `Log`; only rule-matched events also become a linked `Alert`. Matches the intended design: *"routine activity is documented, only suspicious activity gets an alert_id."*
+- **`source_event_id` added to `Log`** (nullable, unique). Stores CloudTrail's own `EventId`. This is the deduplication key — `process_aws_event()` checks it before inserting, so repeated/overlapping polling windows never create duplicate rows.
+
+Both migrations required SQLite "batch mode" (`render_as_batch=True` in `alembic/env.py`) since SQLite can't alter columns directly. **Recurring gotcha:** autogenerate keeps proposing to drop the `logs → alerts` foreign key on every migration touching `logs`, because the FK was never declared as a real `ForeignKey()` in the model (just a comment). Safe workaround each time: delete the `drop_constraint(...)`/`create_foreign_key(...)` lines from the generated migration before applying. **Permanent fix, not yet done:** declare a real `ForeignKey("alerts.id")` on `Log.alert_id`.
+
+### 3. Real FastAPI endpoint
+New file: `Backend/app/api/aws_router.py` → `POST /aws/sync?lookback_minutes=15`
+Registered in `main.py`. Lets the running backend (not just a manual script) pull and save real AWS data on demand. Tested via Swagger UI (`localhost:8000/docs`).
+
+### 4. Automatic polling
+New file: `Backend/app/services/aws_poller.py`. Uses `APScheduler` (`BackgroundScheduler`), polls every 5 minutes with a 15-minute lookback (deliberate overlap — dedup makes it safe, and it's a safety margin against a missed cycle). Wrapped in try/except so one bad AWS call doesn't kill future polling. Wired into `main.py` via FastAPI's modern `lifespan` context manager (not the deprecated `@app.on_event`).
+
+Confirmed working: server startup log shows `[aws_poller] scheduler started, polling every 5 minutes`, and cycles run unattended.
+
+### 5. Two real alerts proven end-to-end
+Both triggered deliberately via safe, free, reversible AWS CLI actions:
+- **Security group change** (`AuthorizeSecurityGroupIngress` / `RevokeSecurityGroupIngress` on the default SG) → `MEDIUM` — "Security group modified"
+- **IAM policy change** (`AttachUserPolicy`, attaching `ReadOnlyAccess`) → `MEDIUM` — "IAM policy modified"
+
+Both saved correctly with bidirectional `Log ↔ Alert` linking (`log.alert_id` ↔ `alert.log_id`).
+
+**Note:** `ConsoleLogin` testing revealed a real AWS quirk — IAM user console logins get recorded in a *different region* than the account default (routed to `us-east-2`/`eu-north-1`/`ap-southeast-2` based on a browser cookie, confirmed via AWS docs). Confirmed the login *did* fire, in `eu-north-1`. **Known limitation:** the connector currently only polls `us-east-1`, so console logins are invisible to it as-is. Documented, not fixed.
+
+### 6. Deduplication verified with real messy data
+Ran `/aws/sync` three times in a row:
+- Run 1: 4 events retrieved, 4 saved (all new)
+- Run 2: 7 retrieved, 4 saved (3 genuinely new, 4 correctly skipped as duplicates)
+- Run 3: 7 retrieved, 0 saved (nothing new)
+
+---
+
+## Security hardening completed
+
+### Scoped-down IAM user
+- Created new IAM user (`ReadOnlyAccess` managed policy attached — not custom-scoped, but broad-safe: read-only across all services, can create/modify/delete nothing)
+- Generated new access keys, ran `aws configure` to switch the CLI/boto3 identity
+- Verified via `aws sts get-caller-identity` and a live `/aws/sync` call
+- `CloudGoat-Admin` (admin-level, meant for the CloudGoat pentesting lab) is no longer used by any part of this project — kept for its original purpose only
+
+### Git hygiene
+- Root `.gitignore`: confirmed `.env`, `*.db`, `node_modules/`, `__pycache__/` already covered; **added `venv/`** (was missing — would have pushed the entire virtual environment) and `.vs/`
+- Frontend `.gitignore`: **added `.env` and `.env.local`** (was completely missing — frontend's real `.env` had zero protection)
+- Confirmed via `git ls-files` that neither `.env` file nor the `.db` file were ever previously committed — repo is public, so this mattered
+- Committed and pushed the `.gitignore` fixes *before* any broader commit
+
+---
+
+## Explicitly deferred (decided today, not forgotten)
+
+| Item | Why deferred | Do before... |
+|---|---|---|
+| `source` field (`"real"` vs `"simulated"`) on `Log`/`Alert` | Real data currently indistinguishable from simulator test data in the DB | Before relying on the dashboard for an honest "this is real" demo |
+| App authentication (login/JWT) | No exposure risk on localhost; higher value to finish AWS integration first while focused | **Must land before Docker and before any public deployment** |
+| AWS resource discovery (real EC2/S3/IAM inventory) | Next planned step | — |
+| Multi-tenant SaaS (per-customer cloud connection, billing, tenant isolation) | Fundamentally larger scope than an Oct 15 timeline supports | Named explicitly as future-work in README, not attempted |
+| Event-driven ingestion (EventBridge → Lambda → webhook) | Requires a public URL; not reachable from localhost | Revisit once real hosting exists — swap-in is small since `process_aws_event()` is already delivery-mechanism-agnostic |
+| Real `ForeignKey()` on `Log.alert_id` | Cosmetic/hygiene fix, not urgent | Whenever convenient |
+
+---
+
+## Files created this session
+- `Backend/app/api/aws_router.py`
+- `Backend/app/services/aws_poller.py`
+- `Backend/alembic/versions/e6ea5fdd9d36_make_alert_id_nullable_in_logs_table.py`
+- `Backend/alembic/versions/eb6749369eb7_add_source_event_id_to_logs_for_....py`
+
+## Files modified this session
+- `Backend/app/connectors/aws_connector.py` (built up across the session)
+- `Backend/app/models/logs.py` (`alert_id` nullable, `source_event_id` added)
+- `Backend/app/main.py` (router registration, lifespan-based poller startup)
+- `Backend/alembic/env.py` (added `Insight` import, `render_as_batch=True`)
+- `Backend/requirements.txt` (restored after an accidental `pip freeze` overwrite; removed the CloudGoat editable-git-install line)
+- `.gitignore` (root) and `frontend/.gitignore`
+
+---
+
+## How to resume next session
+1. `cd Backend`, activate venv: `.\venv\Scripts\Activate.ps1`
+2. `uvicorn app.main:app --reload` — this alone restarts the AWS poller automatically (no separate step)
+3. Start frontend separately as usual
+4. No need to reinstall packages, rerun migrations, or run `aws_connector.py` manually — everything is already saved
+
+## Next steps, in planned order
+1. "Sync AWS Now" button on the dashboard → calls `POST /aws/sync` on demand
+2. AWS resource discovery (real EC2/S3/IAM data)
+3. `source` field (real vs. simulated)
+4. Auth/login (before Docker)
+5. Docker
+6. Push to GitHub
+7. Teammate mirrors this same pattern for Azure

@@ -18,3 +18,4 @@ class Alert(Base):
     provider    = Column(String, nullable=False)       # aws, azure, gcp, oci, cloudflare
     resource = Column(String, nullable=True)
     log_id      = Column(String, nullable=True)      # FK to logs.log_id, can be null if alert created without log (e.g. manual alert)
+    

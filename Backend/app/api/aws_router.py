@@ -1,0 +1,58 @@
+"""
+AWS Sync API Endpoint
+Lets the running backend (not just a manual script) pull real CloudTrail
+events and run them through the same normalize -> rule engine -> save
+pipeline the standalone connector script uses.
+"""
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+from app.db.database import get_db
+from app.connectors.aws_connector import get_recent_cloudtrail_events, process_aws_event
+
+router = APIRouter()
+
+
+@router.post("/aws/sync")
+def sync_aws_events(lookback_minutes: int = 15, db: Session = Depends(get_db)):
+    """
+    Pulls real AWS CloudTrail events from the last `lookback_minutes`
+    minutes and saves Logs (+ Alerts where flagged) to the database.
+    """
+    events = get_recent_cloudtrail_events(lookback_minutes=lookback_minutes)
+
+    logs_saved = 0
+    alerts_created = 0
+    results = []
+
+    for raw in events:
+        log, alert = process_aws_event(raw, db)
+        
+        if log is None:
+            continue  # already saved before, skip
+        db.commit()
+
+        logs_saved += 1
+        if alert:
+            alerts_created += 1
+            results.append({
+                "event_name": log.event_name,
+                "alert_created": True,
+                "severity": alert.severity,
+                "title": alert.title,
+                "log_id": log.log_id,
+                "alert_id": alert.id,
+            })
+        else:
+            results.append({
+                "event_name": log.event_name,
+                "alert_created": False,
+                "log_id": log.log_id,
+            })
+
+    return {
+        "success": True,
+        "events_retrieved": len(events),
+        "logs_saved": logs_saved,
+        "alerts_created": alerts_created,
+        "results": results,
+    }
