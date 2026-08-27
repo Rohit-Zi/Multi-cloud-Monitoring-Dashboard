@@ -574,15 +574,20 @@ def trigger_batch_events(count: int = 5, db: Session = Depends(get_db)):
 
 
 # ─────────────────────────────────────────────────────────────
+
 @router.post("/simulator/trigger/severity")
 def trigger_by_severity(severity: str, count: int = 3, db: Session = Depends(get_db)):
     """Trigger events of a specific severity level"""
+    severity = severity.strip().lower()
     valid_severities = ["critical", "high", "medium", "low"]
     if severity not in valid_severities:
         raise HTTPException(
             status_code=400,
             detail=f"Invalid severity. Choose from: {', '.join(valid_severities)}"
         )
+
+    if count < 1 or count > 50:
+        raise HTTPException(status_code=400, detail="count must be between 1 and 50")
 
     event_names = simulator.get_event_by_severity(severity)
     if not event_names:
@@ -591,12 +596,26 @@ def trigger_by_severity(severity: str, count: int = 3, db: Session = Depends(get
     results = []
     alerts_created = 0
 
-    for i in range(min(count, len(event_names))):
+    for i in range(count):
         event_name = event_names[i % len(event_names)]
         event = simulator.generate_specific_event(event_name)
+
+        if not event:
+            results.append({
+                "event_name": event_name,
+                "alert_created": False,
+                "reason": "event_not_found"
+            })
+            continue
+
         new_alert, new_log = process_event(event, db)
 
         if not new_alert:
+            results.append({
+                "event_name": event_name,
+                "alert_created": False,
+                "reason": "no_rule_match"
+            })
             continue
 
         alerts_created += 1
@@ -611,9 +630,11 @@ def trigger_by_severity(severity: str, count: int = 3, db: Session = Depends(get
     return {
         "success": True,
         "severity_requested": severity,
+        "requested_count": count,
         "alerts_created": alerts_created,
         "results": results
     }
+
 
 
 # ─────────────────────────────────────────────────────────────

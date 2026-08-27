@@ -135,4 +135,4 @@ def get_resources(provider: str, db: Session = Depends(get_db)):
                 "status": "active"
             }
 
-    return list(resource_map.values())    
+    return list(resource_map.values())
