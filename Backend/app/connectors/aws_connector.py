@@ -158,15 +158,18 @@ def process_aws_event(raw_event, db):
     and runs the full pipeline: dedup check -> normalize -> rule mapping
     -> evaluate -> save.
 
+    Both the Log and the Alert (if one is created) get created_at set to
+    the REAL AWS event time (raw_event['EventTime']), not the moment we
+    happened to save it. This keeps displayed times, sort order, and any
+    future trend charts consistent with when things actually happened in
+    AWS -- not when a sync button was clicked.
+
     Returns:
         (Log, Alert | None) if newly saved
         (None, None) if this event was already saved before (duplicate)
     """
     source_event_id = raw_event.get("EventId")
 
-    # Dedup check: has this exact CloudTrail event already been saved?
-    # This makes it safe to run overlapping lookback windows (e.g. polling
-    # every 5 min with a 15 min lookback) without creating duplicate rows.
     if source_event_id:
         existing = db.query(Log).filter(Log.source_event_id == source_event_id).first()
         if existing:
@@ -174,6 +177,7 @@ def process_aws_event(raw_event, db):
 
     normalized = normalize_event(raw_event)
     rule_type = get_rule_event_type(raw_event)
+    event_time = raw_event.get("EventTime")  # real AWS event time, tz-aware datetime
 
     alert_data = None
     if rule_type:
@@ -205,6 +209,7 @@ def process_aws_event(raw_event, db):
         timestamp=normalized["timestamp"],
         raw_log=normalized["raw_log"],
         source_event_id=source_event_id,
+        created_at=event_time,
     )
     db.add(log)
     db.flush()
@@ -219,6 +224,7 @@ def process_aws_event(raw_event, db):
             description=alert_data["description"],
             resource=alert_data["resource"],
             log_id=log.log_id,
+            created_at=event_time,
         )
         db.add(alert)
         db.flush()

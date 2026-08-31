@@ -51,6 +51,7 @@ export default function Dashboard() {
 const [AwsRsources, setAwsResourceCount] = useState(0);
 const [azureRsources, setAzureResourceCount] = useState(0);
 const [gcpRsources, setGcpResourceCount] = useState(0);
+const [isSyncing, setIsSyncing] = useState(false);
 const fetchAwsResourceCount = async () => {
   try {
     const res = await fetch("http://127.0.0.1:8000/resources/count/aws");
@@ -63,7 +64,8 @@ const fetchAwsResourceCount = async () => {
 
 useEffect(() => {
   fetchAwsResourceCount();
-}, []);const generateRandomAlert = async () => {
+}, []);
+  const generateRandomAlert = async () => {
   try {
     await fetch("http://localhost:8000/simulator/trigger/random", {
       method: "POST",
@@ -74,6 +76,26 @@ useEffect(() => {
     window.dispatchEvent(new Event("new-alert"));
   } catch (error) {
     console.error("Failed to generate alert", error);
+  }
+};
+  const syncAwsNow = async () => {
+  setIsSyncing(true);
+  try {
+    const res = await fetch("http://localhost:8000/aws/sync?lookback_minutes=15", {
+      method: "POST",
+    });
+    const data = await res.json();
+    fetchAwsResourceCount();
+    fetchAlerts();
+    window.dispatchEvent(new Event("new-alert"));
+    alert(
+      `AWS Sync complete\nEvents checked: ${data.events_retrieved}\nNew logs saved: ${data.logs_saved}\nNew alerts: ${data.alerts_created}`
+    );
+  } catch (error) {
+    console.error("Failed to sync AWS events", error);
+    alert("AWS Sync failed - check console");
+  } finally {
+    setIsSyncing(false);
   }
 };
   const totalAlerts = alerts.length;
@@ -121,6 +143,13 @@ useEffect(() => {
   className="px-4 py-2 bg-black text-white rounded-md hover:bg-red-700"
 >
   Generate Random Alert
+</button>
+<button
+  onClick={syncAwsNow}
+  disabled={isSyncing}
+  className="px-4 py-2 bg-black text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+>
+  {isSyncing ? "Syncing..." : "Sync AWS Now"}
 </button>
       {/* Cloud Provider Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -315,7 +344,7 @@ useEffect(() => {
                 <div className="flex flex-col items-end gap-1">
                   <CloudBadge cloud={alert.cloud} />
                   <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-                    {new Date(alert.create_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    {new Date(alert.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                   </span>
                 </div>
               </div>

@@ -49,6 +49,7 @@ export default function CloudDetailPage() {
   const { provider } = useParams<{ provider: string }>();
   const [alerts, setAlerts] = useState<any[]>([]);
   const [selectedAlert, setSelectedAlert] = useState<any | null>(null);
+  const [selectedAlertLogs, setSelectedAlertLogs] = useState<any[]>([]);
 useEffect(() => {
   const loadAlerts = async () => {
     try {
@@ -167,7 +168,17 @@ const filteredAlerts = cloudAlerts.filter((a) => {
 const sanitizeSearch = (value: string) => {
     return value.replace(/[<>"'&]/g, "").slice(0, 100);
   };
-
+const handleAlertClick = async (alert: any) => {
+  setSelectedAlert(alert);
+  setSelectedAlertLogs([]);
+  try {
+    const res = await fetch(`http://127.0.0.1:8000/alerts/${alert.id}/logs`);
+    const data = await res.json();
+    setSelectedAlertLogs(data.logs || []);
+  } catch (err) {
+    console.error("Failed to load logs for alert", err);
+  }
+};
 
   return (
     <div className="space-y-6">
@@ -309,7 +320,7 @@ const sanitizeSearch = (value: string) => {
             <TableRow
               key={a.id}
               className="border-border/20 hover:bg-secondary/30 cursor-pointer"
-              onClick={() => setSelectedAlert(a)}
+              onClick={() => handleAlertClick(a)}
             >
               <TableCell className="w-[40%]">
                 <p className="font-medium text-sm">{a.title}</p>
@@ -456,16 +467,40 @@ const sanitizeSearch = (value: string) => {
                   <StatusBadge status={selectedAlert.status} />
                   <CloudBadge cloud={selectedAlert.cloud} />
                 </div>
-                <div>
+                                <div>
                   <p className="text-muted-foreground text-xs mb-1">Description</p>
                   <p>{selectedAlert.description}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground text-xs mb-1">Affected Resource</p>
-                  <p className="font-mono text-xs">{selectedAlert.description}</p>
-                </div>                
-                <div className="text-xs text-muted-foreground">
-                  {new Date(selectedAlert.created_at).toLocaleString()}
+                  <p className="font-mono text-xs">{selectedAlert.resource || "N/A"}</p>
+                </div>
+                {selectedAlertLogs.length > 0 && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-muted-foreground text-xs mb-1">User</p>
+                      <p className="font-mono text-xs">{selectedAlertLogs[0].user || "Unknown"}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs mb-1">Source IP</p>
+                      <p className="font-mono text-xs">{selectedAlertLogs[0].source_ip || "Unknown"}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs mb-1">Region</p>
+                      <p className="font-mono text-xs">{selectedAlertLogs[0].region || "Unknown"}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs mb-1">Event</p>
+                      <p className="font-mono text-xs">{selectedAlertLogs[0].event_name || "Unknown"}</p>
+                    </div>
+                  </div>
+                )}
+                  <div className="text-xs text-muted-foreground">
+                  {selectedAlertLogs.length > 0 ? (
+                    <>Occurred: {new Date(selectedAlertLogs[0].timestamp).toLocaleString()}</>
+                  ) : (
+                    <>Detected: {new Date(selectedAlert.created_at).toLocaleString()}</>
+                  )}
                 </div>
               </div>
             </>

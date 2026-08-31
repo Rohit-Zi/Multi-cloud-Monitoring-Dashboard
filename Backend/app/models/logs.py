@@ -4,7 +4,7 @@ Each alert has one or more logs associated with it
 """
 from sqlalchemy import Column, String, DateTime, Text
 from app.db.database import Base
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 
 
@@ -31,7 +31,7 @@ class Log(Base):
     error_code = Column(String, nullable=True)
 
     timestamp = Column(String, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     raw_log = Column(Text, nullable=True)
 
