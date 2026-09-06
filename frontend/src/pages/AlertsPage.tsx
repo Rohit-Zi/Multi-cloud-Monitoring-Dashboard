@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { SeverityBadge, StatusBadge, CloudBadge } from "@/components/dashboard/Badges";
+import { SeverityBadge, StatusBadge, CloudBadge, SourceBadge  } from "@/components/dashboard/Badges";
 import {
   Table,
   TableHeader,
@@ -151,6 +151,7 @@ const handleAlertClick = async (alert: any) => {
               <TableHead className="text-muted-foreground">Cloud</TableHead>
               <TableHead className="text-muted-foreground">Resource</TableHead>
               <TableHead className="text-muted-foreground">Time</TableHead>
+              <TableHead className="text-muted-foreground">Source</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -171,6 +172,7 @@ const handleAlertClick = async (alert: any) => {
                 <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                   {new Date(alert.created_at).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                 </TableCell>
+                <TableCell><SourceBadge source={alert.source} /></TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -193,6 +195,7 @@ const handleAlertClick = async (alert: any) => {
                   <SeverityBadge severity={selectedAlert.severity} />
                   <StatusBadge status={selectedAlert.status} />
                   <CloudBadge cloud={selectedAlert.cloud} />
+                  <SourceBadge source={selectedAlert.source} />
                 </div>
                                 <div>
                   <p className="text-muted-foreground text-xs mb-1">Description</p>

@@ -2,7 +2,7 @@
 Log Model - Stores generated logs linked to alerts
 Each alert has one or more logs associated with it
 """
-from sqlalchemy import Column, String, DateTime, Text
+from sqlalchemy import Boolean, Column, String, DateTime, Text
 from app.db.database import Base
 from datetime import datetime, timezone
 import uuid
@@ -24,6 +24,8 @@ class Log(Base):
 
     user = Column(String, nullable=True)
     source_ip = Column(String, nullable=True)
+    is_system_noise = Column(Boolean, default=False)
+    source = Column(String, default="real")
     region = Column(String, nullable=True)
     resource = Column(String, nullable=True)
 
@@ -60,4 +62,6 @@ class Log(Base):
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "raw_log": self.raw_log,
             "source_event_id": self.source_event_id,
+            "is_system_noise": self.is_system_noise,
+            "source": self.source,
         }

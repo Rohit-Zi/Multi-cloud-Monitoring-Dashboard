@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
+from app.models.resource import Resource
 from app.db.database import get_db
 from app.models.alert import Alert
 from app.processors.severity_normalizer import SeverityNormalizer
@@ -111,28 +112,15 @@ def get_resource_count(db: Session = Depends(get_db)):
 
 @router.get("/resources/count/{provider}")
 def get_resource_count(provider: str, db: Session = Depends(get_db)):
-    resources = (
-        db.query(Alert.resource)
-        .filter(Alert.provider == provider)
-        .distinct()
-        .all()
-    )
+    count = db.query(Resource).filter(Resource.provider == provider).count()
+    return {"resource_count": count}
 
-    return {"resource_count": len(resources)}
 @router.get("/resources/{provider}")
 def get_resources(provider: str, db: Session = Depends(get_db)):
-    alerts = db.query(Alert).filter(Alert.provider == provider).all()
-
-    resource_map = {}
-
-    for alert in alerts:
-        if alert.resource:
-            resource_map[alert.resource] = {
-                "id": alert.resource,
-                "name": alert.resource,
-                "type": "compute",
-                "region": "us-east-1",
-                "status": "active"
-            }
-
-    return list(resource_map.values())
+    resources = (
+        db.query(Resource)
+        .filter(Resource.provider == provider)
+        .order_by(Resource.last_synced_at.desc())
+        .all()
+    )
+    return [r.to_dict() for r in resources]

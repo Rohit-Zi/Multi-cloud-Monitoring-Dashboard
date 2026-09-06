@@ -52,3 +52,15 @@ export function ResourceStatusDot({ status }: { status: string }) {
   };
   return <span className={cn("inline-block h-2 w-2 rounded-full", color[status] || "bg-muted")} />;
 }
+export function SourceBadge({ source }: { source: string }) {
+  const styles: Record<string, string> = {
+    real: "bg-primary/10 text-primary border-primary/20",
+    simulated: "bg-muted-foreground/10 text-muted-foreground border-muted-foreground/20",
+  };
+  const labels: Record<string, string> = { real: "LIVE", simulated: "SIM" };
+  return (
+    <Badge variant="outline" className={cn("text-[10px] font-bold uppercase", styles[source] || styles.simulated)}>
+      {labels[source] || source}
+    </Badge>
+  );
+}

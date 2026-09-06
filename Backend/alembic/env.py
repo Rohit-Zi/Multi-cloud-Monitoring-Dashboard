@@ -24,6 +24,7 @@ from app.models.alert import Alert
 from app.models.logs import Log
 from app.models.user import User
 from app.models.insight import Insight
+from app.models.resource import Resource
 from app.db.database import Base
 
 target_metadata = Base.metadata

@@ -79,7 +79,7 @@ def get_all_logs(
     cloud: str = None,
     provider: str = None,
     outcome: str = None,
-    limit: int = 50,
+    limit: int = 200,
     db: Session = Depends(get_db)
 ):
     """

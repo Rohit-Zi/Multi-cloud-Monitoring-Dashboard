@@ -5,7 +5,7 @@ import { getAlerts } from "@/lib/api";
 import {
   cloudProviderInfo,
 } from "@/data/mockData";
-import { SeverityBadge, StatusBadge, CloudBadge, ResourceStatusDot } from "@/components/dashboard/Badges";
+import { SeverityBadge, StatusBadge, CloudBadge, ResourceStatusDot, SourceBadge } from "@/components/dashboard/Badges";
 import { Progress } from "@/components/ui/progress";
 import { getLogs } from "@/lib/api";
 import {
@@ -54,7 +54,11 @@ useEffect(() => {
   const loadAlerts = async () => {
     try {
       const data = await getAlerts();
-      setAlerts(data);
+      const normalized = data.map((a: any) => ({
+        ...a,
+        cloud: a.cloud?.toLowerCase(),
+      }));
+      setAlerts(normalized);
     } catch (err) {
       console.error(err);
     }
@@ -62,7 +66,7 @@ useEffect(() => {
 
   loadAlerts();
 }, []);
-  if (!provider || !validClouds.includes(provider)) return <Navigate to="/" />;
+ if (!provider || !validClouds.includes(provider)) return <Navigate to="/" />;
 
   const cloud = provider as keyof typeof cloudProviderInfo;
   const info = cloudProviderInfo[cloud];
@@ -94,6 +98,7 @@ useEffect(() => {
  
   const [logs, setLogs] = useState<any[]>([]);
   const[logOutcome, setLogOutcome] = useState<string>("all");
+  const [showSystemNoise, setShowSystemNoise] = useState(false);
   const [logSearch, setLogSearch] = useState("");
   useEffect(() => {
   const loadLogs = async () => {
@@ -109,6 +114,8 @@ useEffect(() => {
   }, []);
   const cloudLogs = logs
   .filter((log) => log.cloud?.toLowerCase() === provider?.toLowerCase())
+  .filter((log) => (showSystemNoise ? log.is_system_noise : !log.is_system_noise))
+  
   .filter((log) => {
     const search = logSearch.toLowerCase();
 
@@ -300,16 +307,17 @@ const handleAlertClick = async (alert: any) => {
           </Select>
         </div>
 
-  <div className="glass-card h-[500px] flex flex-col">
+  <div className="glass-card h-[calc(100vh-460px)] min-h-[300px] flex flex-col">
     {/* HEADER TABLE (STATIC) */}
     <Table className="table-fixed w-full">
       <TableHeader>
         <TableRow className="border-border/30 hover:bg-transparent">
-          <TableHead className=" w-[40%] text-muted-foreground">Alert</TableHead>
-          <TableHead className=" w-[15%] text-muted-foreground">Severity {severityFilter !== "all" && `(${filteredAlerts.length})`}</TableHead>
-          <TableHead className=" w-[15%] text-muted-foreground">Status {statusFilter !== "all" && `(${filteredAlerts.length})`}</TableHead>
-          <TableHead className=" w-[15%] text-muted-foreground">Resource</TableHead>
-          <TableHead className=" w-[15%] text-muted-foreground">Time</TableHead>
+          <TableHead className=" w-[30%] text-muted-foreground">Alert</TableHead>
+          <TableHead className=" w-[14%] text-muted-foreground">Severity {severityFilter !== "all" && `(${filteredAlerts.length})`}</TableHead>
+          <TableHead className=" w-[14%] text-muted-foreground">Status {statusFilter !== "all" && `(${filteredAlerts.length})`}</TableHead>
+          <TableHead className=" w-[14%] text-muted-foreground">Resource</TableHead>
+          <TableHead className=" w-[14%] text-muted-foreground">Time</TableHead>
+          <TableHead className=" w-[14%] text-muted-foreground">Source</TableHead>
         </TableRow>
       </TableHeader>
     </Table>
@@ -322,18 +330,18 @@ const handleAlertClick = async (alert: any) => {
               className="border-border/20 hover:bg-secondary/30 cursor-pointer"
               onClick={() => handleAlertClick(a)}
             >
-              <TableCell className="w-[40%]">
+              <TableCell className="w-[30%]">
                 <p className="font-medium text-sm">{a.title}</p>
                 <p className="text-[10px] text-muted-foreground">
                   ALT-{a.id.slice(0, 6).toUpperCase()}
                 </p>
               </TableCell>
-              <TableCell className="w-[15%]"><SeverityBadge severity={a.severity} /></TableCell>
-              <TableCell className="w-[15%]"><StatusBadge status={a.status} /></TableCell>
-              <TableCell className="w-[15%] text-xs text-muted-foreground font-mono">
+              <TableCell className="w-[14%]"><SeverityBadge severity={a.severity} /></TableCell>
+              <TableCell className="w-[14%]"><StatusBadge status={a.status} /></TableCell>
+              <TableCell className="w-[14%] text-xs text-muted-foreground font-mono">
                 {a.resource}
               </TableCell>
-              <TableCell className="w-[15%] text-xs text-muted-foreground whitespace-nowrap">
+              <TableCell className="w-[14%] text-xs text-muted-foreground whitespace-nowrap">
                 {new Date(a.created_at).toLocaleString([], {
                   month: "short",
                   day: "numeric",
@@ -341,6 +349,7 @@ const handleAlertClick = async (alert: any) => {
                   minute: "2-digit",
                 })}
               </TableCell>
+              <TableCell className="w-[14%]"><SourceBadge source={a.source} /></TableCell>
             </TableRow>
           ))}
         </TableBody>
@@ -372,8 +381,16 @@ const handleAlertClick = async (alert: any) => {
               <SelectItem value="warning">Warning</SelectItem>
             </SelectContent>
           </Select>
-        </div>
-          <div className="glass-card overflow-hidden">
+          <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={showSystemNoise}
+              onChange={(e) => setShowSystemNoise(e.target.checked)}
+              className="accent-primary"
+            />
+            Show system events
+          </label>
+        </div>          <div className="glass-card overflow-hidden">
             <Table>
               <TableHeader>
                 <TableRow className="border-border/30 hover:bg-transparent">
@@ -384,6 +401,7 @@ const handleAlertClick = async (alert: any) => {
                   <TableHead className="text-muted-foreground">Resource</TableHead>
                   <TableHead className="text-muted-foreground">IP</TableHead>
                   <TableHead className="text-muted-foreground">Time</TableHead>
+                  <TableHead className="text-muted-foreground">Source</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -405,6 +423,7 @@ const handleAlertClick = async (alert: any) => {
                     <TableCell className="text-xs text-muted-foreground font-mono">{l.resource}</TableCell>
                     <TableCell className="text-xs text-muted-foreground font-mono">{l.source_ip}</TableCell>
                     <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{new Date(l.timestamp).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</TableCell>
+                    <TableCell><SourceBadge source={l.source} /></TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -465,7 +484,7 @@ const handleAlertClick = async (alert: any) => {
                 <div className="flex gap-2">
                   <SeverityBadge severity={selectedAlert.severity} />
                   <StatusBadge status={selectedAlert.status} />
-                  <CloudBadge cloud={selectedAlert.cloud} />
+                  <SourceBadge source={selectedAlert.source} />
                 </div>
                                 <div>
                   <p className="text-muted-foreground text-xs mb-1">Description</p>

@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
-import { CloudBadge } from "@/components/dashboard/Badges";
+import { CloudBadge, SourceBadge } from "@/components/dashboard/Badges";
+
 import {
   Table,
   TableHeader,
@@ -111,6 +112,7 @@ export default function ActivityLogsPage() {
               <TableHead className="text-muted-foreground">Resource</TableHead>
               <TableHead className="text-muted-foreground">IP</TableHead>
               <TableHead className="text-muted-foreground">Time</TableHead>
+              <TableHead className="text-muted-foreground">Source</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -140,10 +142,11 @@ export default function ActivityLogsPage() {
                   <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                     {new Date(log.timestamp).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                   </TableCell>
+                  <TableCell><SourceBadge source={log.source?.toLowerCase()} /></TableCell>
                 </TableRow>
                 {expandedId === log.log_id && (
                   <TableRow key={`${log.log_id}-detail`} className="border-border/20 bg-secondary/20">
-                    <TableCell colSpan={7} className="text-sm">
+                    <TableCell colSpan={9} className="text-sm">
                       <pre className="text-xs whitespace-pre-wrap">{log.raw_log}</pre>
                       <p>{log.details}</p>
                     </TableCell>

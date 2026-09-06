@@ -167,7 +167,7 @@ class RuleEngine:
                 "title": "Snapshot shared with unknown account",
                 "description": "EBS snapshot shared with external AWS account"
                         },
-                        "console_login_success": {
+            "console_login_success": {
                 "severity": "low",
                 "alert": True,
                 "title": "User Logged Into AWS Console",
@@ -178,18 +178,33 @@ class RuleEngine:
                 "alert": True,
                 "title": "EC2 Instance Started",
                 "description": "An EC2 instance was started by a user"
-            },"iam_readonly_policy_attached": {
+            },
+            "ec2_instance_stopped": {
+                "severity": "low",
+                "alert": True,
+                "title": "EC2 Instance Stopped",
+                "description": "An EC2 instance was stopped by a user"
+            },
+            "iam_readonly_policy_attached": {
                 "severity": "low",
                 "alert": True,
                 "title": "ReadOnly Policy Attached",
                 "description": "A ReadOnlyAccess policy was attached to an IAM user"
-            },"s3_bucket_access": {
+            },            "s3_bucket_access": {
                 "severity": "low",
                 "alert": True,
                 "title": "S3 Bucket Accessed",
                 "description": "An S3 bucket was accessed by a user"
+            },
+            "s3_bucket_created": {
+                "severity": "low",
+                "alert": True,
+                "title": "S3 bucket created",
+                "description": "A new S3 bucket was created"
             }
         },
+        
+        
         # Azure Rules
         "azure": {
             "admin_login": {

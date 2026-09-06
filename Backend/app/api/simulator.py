@@ -405,6 +405,7 @@ def process_event(event: dict, db: Session):
         event_data=event["event_data"]
     )
     log_data["log_id"] = str(uuid.uuid4())
+    log_data["source"] = "simulated"
     new_log = Log(**log_data)
     db.add(new_log)
     db.flush()  # save log but don't commit yet
@@ -429,6 +430,7 @@ def process_event(event: dict, db: Session):
     # STEP 4: Create Alert linked to log
     new_alert = Alert(
         cloud=event["provider"].upper(),
+        source="simulated",
         provider=event["provider"],
         severity=normalized_severity,
         title=alert_data["title"],
